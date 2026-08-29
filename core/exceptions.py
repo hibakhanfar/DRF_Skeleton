@@ -19,5 +19,12 @@ def custom_exception_handler(exc, context):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    response.data['status_code'] = response.status_code
-    return response
+    logger.warning(f"Handled Exception: {str(exc)}", exc_info=True)
+    return Response(
+        {
+            "status_code": response.status_code,
+            "error": exc.__class__.__name__,
+            "details": response.data
+        },
+        status=response.status_code
+    )
