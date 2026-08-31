@@ -136,6 +136,9 @@ MAILERS = {
 LOGS_DIR = BASE_DIR / 'logs'
 os.makedirs(LOGS_DIR, exist_ok=True)
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
