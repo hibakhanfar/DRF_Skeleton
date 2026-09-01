@@ -1,6 +1,6 @@
 from rest_framework import status, permissions
 from rest_framework.response import Response
-from .serializers import RegisterSerializer,UserProfileSerializer,EmailVerificationSerializer,CustomTokenObtainPairSerializer
+from .serializers import RegisterSerializer,UserProfileSerializer,CustomTokenObtainPairSerializer
 from rest_framework.views import APIView
 from .Component import register_user
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
