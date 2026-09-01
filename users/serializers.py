@@ -24,8 +24,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'username', 'email','is_verified')
 
 
-class EmailVerificationSerializer(serializers.ModelSerializer):
-    token = serializers.CharField(max_length=555, write_only=True)
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
