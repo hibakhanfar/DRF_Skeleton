@@ -1,8 +1,9 @@
 from rest_framework import status, permissions
 from rest_framework.response import Response
-from .serializers import RegisterSerializer,UserProfileSerializer,CustomTokenObtainPairSerializer
+from .serializers import RegisterSerializer,UserProfileSerializer,CustomTokenObtainPairSerializer,FileSerializer
 from rest_framework.views import APIView
 from .Component import register_user
+from rest_framework.parsers import FormParser, MultiPartParser
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 import jwt
 from .models import User
@@ -96,3 +97,38 @@ class UserProfileView(APIView):
 
 class CustomLoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class FileUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    serializer_class = FileSerializer
+
+    @extend_schema(
+        request={
+            'multipart/form-data': FileSerializer,
+        },
+        responses={200: FileSerializer},
+        description=(
+                'Endpoint for uploading user documents with Magic Bytes validation.'
+        ),
+    )
+    def post(self, request):
+        if not request.user.is_verified:
+            return Response(
+                {'error': 'Please verify your email address first.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = FileSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    'message': 'File uploaded successfully',
+                    'data': serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
