@@ -4,11 +4,11 @@ A reusable, production-ready starter skeleton for Django REST Framework projects
 
 See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full breakdown of layer responsibilities.
 
-## Branches
+### Branches
 
-- **`main`** — clean base skeleton (project layout, settings, custom user model, logging, exception handling). No domain-specific feature code.
-- **`example`** — branched from `main`, implements a working `users` app (registration, email verification, login, profile) as a reference for how to use the architecture.
-
+* **`main`** — Clean base skeleton (project layout, settings, custom user model, logging, exception handling). No domain-specific feature code.
+* **`example`** — Branched from `main`, implements a working users app (registration, email verification, login, profile) as a reference for how to use the architecture.
+* **`file`** — Branched from `example`, adds secure file upload capabilities with custom MIME-type validation using `python-magic` for robust header/magic-bytes checking.
 ## Tech Stack
 
 - Python 3.14
@@ -17,6 +17,7 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full breakdown of layer respo
 - `djangorestframework-simplejwt` for JWT authentication
 - `drf-spectacular` for OpenAPI 3.0 schema + Swagger UI
 - `django-environ` for environment-based settings
+- `python-magic` for magic-bytes file type validation on uploads (needs system `libmagic`)
 - Package management via [`uv`](https://docs.astral.sh/uv/)
 
 ## Getting Started (using this project as-is)
@@ -84,6 +85,67 @@ manage.py
 pyproject.toml
 .env.example
 ```
+
+## API Endpoints (`example` branch — `users` app)
+
+| Method | Endpoint | Auth required | Description |
+|---|---|---|---|
+| `POST` | `/api/register/` | No | Register a new user, sends an email verification link |
+| `GET` | `/api/email-verify/?token=...` | No | Verify a user's email using the JWT token from the email link |
+| `POST` | `/api/login/` | No | Obtain JWT access/refresh tokens (blocks unverified users) |
+| `POST` | `/api/token/refresh/` | No | Refresh an expired access token |
+| `GET` | `/api/me/` | Yes | Get the authenticated user's profile (requires verified email) |
+| `POST` | `/api/upload-file/` | Yes | Upload a document for the authenticated user (requires verified email) |
+
+Interactive docs: `/api/docs/` (Swagger UI) · Raw schema: `/api/schema/`
+
+## File Uploads
+
+The `upload-file` endpoint (`users/views.py::FileUploadView`) lets an authenticated, verified user attach a document to their account via `multipart/form-data`.
+
+**Where files are stored**, configured in `core/settings/base.py`:
+
+```python
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+```
+
+The `User.file` field itself decides the sub-folder:
+
+```python
+# users/models.py
+file = models.FileField(upload_to='docs/', null=True, blank=True)
+```
+
+So an uploaded file ends up at `media/docs/<filename>` and is served at `/media/docs/<filename>` — this path is what the API returns in the response, not the raw file bytes.
+
+The `media/` directory is git-ignored on purpose (uploaded files are runtime user data, not source code) and is created automatically by Django the first time a file is uploaded — no manual setup needed after cloning.
+
+**Validation:** `users/serializers.py::FileSerializer.validate_file` checks the file's actual content (magic bytes), not just its extension, restricting uploads to `image/png`, `image/jpeg`, and `application/pdf`.
+
+This relies on `libmagic`, a system-level C library — not a pure Python package — so the setup differs slightly per OS. `pyproject.toml` handles this automatically with OS-conditional dependencies:
+
+```toml
+"python-magic>=0.4.27; sys_platform != 'win32'",
+"python-magic-bin>=0.4.14; sys_platform == 'win32'",
+```
+
+| OS | What gets installed | Extra setup needed |
+|---|---|---|
+| **Windows** | `python-magic-bin` | None — it bundles the required `libmagic` DLLs |
+| **macOS** | `python-magic` | `brew install libmagic` (one-time) |
+
+`uv sync` reads `sys_platform` and picks the right package automatically — no manual choice needed. Just run `uv sync`, then (on macOS/Linux only) install the system `libmagic` library once.
+
+> Note: `python-magic-bin` hasn't been updated since 2017 and only ships Intel builds for macOS — it doesn't support Apple Silicon (M-series) Macs. That's why macOS always uses plain `python-magic` + Homebrew's `libmagic` instead, regardless of chip.
+
+To verify `libmagic` is set up correctly after `uv sync`:
+
+```bash
+uv run python -c "import magic; print('OK')"
+```
+
+**Swagger/OpenAPI note:** the request body for this endpoint must render as a binary file picker (`string($binary)`), not a plain text field (`string($uri)`). This requires `COMPONENT_SPLIT_REQUEST: True` in `SPECTACULAR_SETTINGS` (`core/settings/base.py`) — without it, drf-spectacular reuses the same schema for the request and the response, and since the response returns the file as a URL string, the request field incorrectly inherits that `uri` format too.
 
 ## Logging
 
