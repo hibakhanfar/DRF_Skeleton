@@ -190,7 +190,8 @@ if env.bool('USE_S3', default=False):
                 "secret_key": env("AWS_SECRET_ACCESS_KEY"),
                 "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
                 "endpoint_url": env("AWS_S3_ENDPOINT_URL"),
-                "region_name": env("AWS_S3_REGION_NAME", default="us-east-005"),  # 👈 تم التعديل هنا
+                "region_name": env("AWS_S3_REGION_NAME", default="us-east-005"),
+
                 "querystring_auth": False,
             },
         },
