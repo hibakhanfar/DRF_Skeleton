@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "boto3>=1.43.87",
+    "boto3-stubs~=1.43.87",
     "django>=6.1",
     "django-environ>=0.14.0",
     "django-storages>=1.14.6",

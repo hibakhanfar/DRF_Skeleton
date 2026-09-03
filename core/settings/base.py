@@ -182,6 +182,7 @@ SPECTACULAR_SETTINGS = {
 
 
 if env.bool('USE_S3', default=False):
+
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3.S3Storage",
@@ -191,8 +192,8 @@ if env.bool('USE_S3', default=False):
                 "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
                 "endpoint_url": env("AWS_S3_ENDPOINT_URL"),
                 "region_name": env("AWS_S3_REGION_NAME", default="us-east-005"),
-
                 "querystring_auth": False,
+
             },
         },
         "staticfiles": {
